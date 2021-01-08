@@ -1226,3 +1226,5 @@ target_link_libraries(dumpdcd PRIVATE cp2kobj)
 add_executable(xyz2dcd motion/xyz2dcd.F)
 set_target_properties(xyz2dcd PROPERTIES LINKER_LANGUAGE Fortran)
 target_link_libraries(xyz2dcd PRIVATE cp2kobj)
+
+install(TARGETS cp2k cp2k-bin memory_utilities_unittest parallel_rng_types_unittest graph dumpdcd xyz2dcd)
