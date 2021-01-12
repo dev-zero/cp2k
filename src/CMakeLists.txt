@@ -1213,7 +1213,7 @@ add_library(cp2kobj OBJECT ${CP2K_SRCS}
 
   if (USE_PEXSI)
     target_compile_definitions(cp2kobj PUBLIC -D__LIBPEXSI)
-    target_compile_libraries(cp2kobj PUBLIC)
+    target_link_libraries(cp2kobj PRIVATE PEXSI::PEXSI)
   endif ()
 
   target_link_libraries(cp2kobj PUBLIC DBCSR::dbcsr OpenMP::OpenMP_Fortran OpenMP::OpenMP_C)

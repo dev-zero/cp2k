@@ -81,7 +81,7 @@ set_property(CACHE USE_SMM PROPERTY STRINGS blas libxsmm)
 option(USE_SIRIUS "Enable plane wave dft calculations with sirius" NO)
 option(USE_FFTW3 "Use fftw3 for the calculating fast fourier transforms" NO)
 option(USE_ELPA "Enable elpa support" NO)
-option(USE_SCALPACK "Enable scalpack support." NO)
+option(USE_SCALAPACK "Enable scalapack support." NO)
 option(USE_PTSCOTCH "Enable ptscotch support" NO)
 option(USE_CUDA "Enable cuda support" NO)
 option(USE_HIP "Enable AMD GPU support" NO)
@@ -219,17 +219,6 @@ if (USE_CUDA)
   message(STATUS "GPU architecture number: " ${ACC_ARCH_NUMBER})
   message(STATUS "GPU profiling enabled: " ${WITH_CUDA_PROFILING})
 
-  # =================================== BLAS on GPU backend
-  find_library(CUBLAS cublas HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-  if (NOT CUBLAS)
-    message(
-      FATAL_ERROR
-        "cuBLAS library not found but support required for DBCSR's CUDA backend"
-    )
-  else ()
-    message(STATUS "Found cuBLAS: ${CUBLAS}")
-  endif ()
-
   if (WITH_CUDA_PROFILING)
     find_library(
       CUDA_NVTOOLSEXT nvToolsExt
@@ -341,7 +330,6 @@ endif ()
 
 if (USE_LIBXC)
   find_package(LibXC 4.3.4 REQUIRED)
-  message("-- Found libxc")
 endif ()
 
 if (USE_COSMA)
@@ -355,17 +343,17 @@ endif ()
 # =================================== FFTW3 ===========================================
 
 if (USE_FFTW3)
-  find_package(FFTW)
+  find_package(FFTW REQUIRED)
 endif ()
 
 # ==================================== scalapack ======================================
 if (USE_SCALAPACK)
-  find_package(scalapack REQUIRED)
+  find_package(Scalapack REQUIRED)
 endif ()
 
 # ==================================== QUIP
 if (USE_QUIP)
-  find_package(quip REQUIRED)
+  find_package(Quip REQUIRED)
 endif()
 
 # ==================================== libint
@@ -380,8 +368,6 @@ if (USE_SPGLIB)
   find_package(LibSPG REQUIRED)
 endif ()
 
-
-
 # =================================== SIRIUS ==========================================
 
 if (USE_SIRIUS)
@@ -389,12 +375,26 @@ if (USE_SIRIUS)
   message("-- SIRIUS library was found")
 endif()
 
-if (USE_PEXSI)
-  find_package(ParMETIS required)
-  find_package(Superlu required)
-  find_package(pexsi required)
+if (USE_SUPERLU)
+  find_package(SuperLU REQUIRED)
 endif()
 
+if (USE_PARMETIS)
+  find_package(Metis)
+endif ()
+
+if (USE_PTSCOTCH)
+  find_package(Ptscotch REQUIRED)
+endif ()
+
+if (USE_PEXSI)
+  #PEXSI 1.2 uses cmake as build system
+  find_package(PEXSI REQUIRED)
+endif ()
+
+if (USE_PLUMED)
+  find_package(Plumed REQUIRED)
+endif ()
 
 # =================================================================================================
 # OPTION HANDLING

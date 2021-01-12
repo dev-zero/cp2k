@@ -2,7 +2,7 @@
 #
 # Usage:
 #   find_package(FFTW [REQUIRED] [QUIET] )
-#     
+#
 # It sets the following variables:
 #   FFTW_FOUND               ... true if fftw is found on the system
 #   FFTW_LIBRARIES           ... full path to fftw library
@@ -17,12 +17,15 @@
 #
 
 #If environment variable FFTWDIR is specified, it has same effect as FFTW_ROOT
+
+include(FindPackageHandleStandardArgs)
+# Check if we can use PkgConfig
+find_package(PkgConfig)
+
 if( NOT FFTW_ROOT AND ENV{FFTWDIR} )
   set( FFTW_ROOT $ENV{FFTWDIR} )
 endif()
 
-# Check if we can use PkgConfig
-find_package(PkgConfig)
 
 #Determine from PKG
 if( PKG_CONFIG_FOUND AND NOT FFTW_ROOT )
@@ -47,7 +50,7 @@ if( FFTW_ROOT )
     PATHS ${FFTW_ROOT}
     PATH_SUFFIXES "lib" "lib64"
     NO_DEFAULT_PATH
-  )
+    )
 
   find_library(
     FFTWF_LIB
@@ -55,7 +58,7 @@ if( FFTW_ROOT )
     PATHS ${FFTW_ROOT}
     PATH_SUFFIXES "lib" "lib64"
     NO_DEFAULT_PATH
-  )
+    )
 
   find_library(
     FFTWL_LIB
@@ -63,7 +66,7 @@ if( FFTW_ROOT )
     PATHS ${FFTW_ROOT}
     PATH_SUFFIXES "lib" "lib64"
     NO_DEFAULT_PATH
-  )
+    )
 
   #find includes
   find_path(
@@ -72,7 +75,7 @@ if( FFTW_ROOT )
     PATHS ${FFTW_ROOT}
     PATH_SUFFIXES "include"
     NO_DEFAULT_PATH
-  )
+    )
 
 else()
 
@@ -80,26 +83,26 @@ else()
     FFTW_LIB
     NAMES "fftw3"
     PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-  )
+    )
 
   find_library(
     FFTWF_LIB
     NAMES "fftw3f"
     PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-  )
+    )
 
 
   find_library(
     FFTWL_LIB
     NAMES "fftw3l"
     PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-  )
+    )
 
   find_path(
     FFTW_INCLUDES
     NAMES "fftw3.h"
     PATHS ${PKG_FFTW_INCLUDE_DIRS} ${INCLUDE_INSTALL_DIR}
-  )
+    )
 
 endif( FFTW_ROOT )
 
@@ -111,9 +114,11 @@ endif()
 
 set( CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES_SAV} )
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(FFTW DEFAULT_MSG
-                                  FFTW_INCLUDES FFTW_LIBRARIES)
+find_package_handle_standard_args(FFTW DEFAULT_MSG FFTW_INCLUDES FFTW_LIBRARIES)
 
-mark_as_advanced(FFTW_INCLUDES FFTW_LIBRARIES FFTW_LIB FFTWF_LIB FFTWL_LIB)
-
+if(FFTW_FOUND AND NOT TARGET fftw3::fftw3)
+  add_library(fftw3::fftw3 INTERFACE IMPORTED)
+  set_target_properties(fftw3::fftw3 PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDES}"
+    INTERFACE_LINK_LIBRARIES "${FFTW3_LIBRARIES}")
+endif()
