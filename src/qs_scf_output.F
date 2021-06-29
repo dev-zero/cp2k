@@ -184,12 +184,13 @@ CONTAINS
 
       CHARACTER(LEN=2)                                   :: solver_method
       CHARACTER(LEN=3*default_string_length)             :: message
-      INTEGER                                            :: handle, ikp, ispin, kpoint, nao, &
+      INTEGER                                            :: handle, ikp, ispin, iw, kpoint, nao, &
                                                             nelectron, nkp, nmo, nmo_tmp, nspin
+      INTEGER, DIMENSION(2)                              :: nmos_occ
       INTEGER, DIMENSION(:), POINTER                     :: mo_index_range
       LOGICAL                                            :: do_kpoints, print_eigvals, &
                                                             print_eigvecs, print_mo_info, &
-                                                            print_occup
+                                                            print_occup, print_occup_stats
       REAL(KIND=dp)                                      :: flexible_electron_count, maxocc, n_el_f
       REAL(KIND=dp), DIMENSION(:), POINTER               :: mo_eigenvalues, mo_eigenvalues_tmp
       TYPE(admm_type), POINTER                           :: admm_env
@@ -232,9 +233,12 @@ CONTAINS
       CALL section_vals_val_get(dft_section, "PRINT%MO%EIGENVALUES", l_val=print_eigvals)
       CALL section_vals_val_get(dft_section, "PRINT%MO%EIGENVECTORS", l_val=print_eigvecs)
       CALL section_vals_val_get(dft_section, "PRINT%MO%OCCUPATION_NUMBERS", l_val=print_occup)
+      CALL section_vals_val_get(dft_section, "PRINT%MO%OCCUPATION_NUMBERS_STATS", l_val=print_occup_stats)
+
       logger => cp_get_default_logger()
       print_mo_info = (cp_print_key_should_output(logger%iter_info, dft_section, "PRINT%MO") /= 0)
-      IF ((.NOT. print_mo_info) .OR. (.NOT. (print_eigvals .OR. print_eigvecs .OR. print_occup))) THEN
+
+      IF ((.NOT. print_mo_info) .OR. (.NOT. (print_eigvals .OR. print_eigvecs .OR. print_occup .OR. print_occup_stats))) THEN
          CALL timestop(handle)
          RETURN
       END IF
@@ -245,6 +249,7 @@ CONTAINS
       NULLIFY (mo_set_tmp)
 
       nspin = dft_control%nspins
+      nmos_occ = 0
 
       ! Check, if we have k points
       IF (do_kpoints) THEN
@@ -389,10 +394,12 @@ CONTAINS
                   CALL write_mo_set_to_output_unit(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
                                                    dft_section, 4, kpoint, final_mos=final_mos, spin="ALPHA", &
                                                    solver_method=solver_method)
+                  nmos_occ(1) = MAX(nmos_occ(1), COUNT(mo_set_tmp%occupation_numbers > 1e-6))
                CASE (2)
                   CALL write_mo_set_to_output_unit(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
                                                    dft_section, 4, kpoint, final_mos=final_mos, spin="BETA", &
                                                    solver_method=solver_method)
+                  nmos_occ(2) = MAX(nmos_occ(2), COUNT(mo_set_tmp%occupation_numbers > 1e-6))
                CASE DEFAULT
                   CPABORT("Invalid spin")
                END SELECT
@@ -400,6 +407,7 @@ CONTAINS
                CALL write_mo_set_to_output_unit(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
                                                 dft_section, 4, kpoint, final_mos=final_mos, &
                                                 solver_method=solver_method)
+               nmos_occ(1) = MAX(nmos_occ(1), COUNT(mo_set_tmp%occupation_numbers > 1e-6))
             END IF
 
             ! Deallocate temporary objects needed for OT
@@ -413,6 +421,22 @@ CONTAINS
          END DO ! ispin
 
       END DO ! k point loop
+      IF (print_mo_info .AND. print_occup_stats) THEN
+         iw = cp_print_key_unit_nr(logger, dft_section, "PRINT%MO", &
+                                   ignore_should_output=print_mo_info, &
+                                   extension=".MOLog")
+         IF (iw > 0) THEN
+            IF (SIZE(mos) > 1) THEN
+               WRITE (UNIT=iw, FMT="(A,I4)") " MO| Total occupied (ALPHA):", nmos_occ(1)
+               WRITE (UNIT=iw, FMT="(A,I4)") " MO| Total occupied (BETA): ", nmos_occ(2)
+            ELSE
+               WRITE (UNIT=iw, FMT="(A,I4)") " MO| Total occupied: ", nmos_occ(1)
+            END IF
+            WRITE (UNIT=iw, FMT="(A)") ""
+         END IF
+         CALL cp_print_key_finished_output(iw, logger, dft_section, "PRINT%MO", &
+                                           ignore_should_output=print_mo_info)
+      END IF
 
       CALL timestop(handle)
 
